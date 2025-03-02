@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-iced = { version = "0.13.1", features = ["canvas", "tokio"] }
+iced = { version = "0.13.1", features = ["canvas", "tokio", "advanced"] }
 plotters-iced = "0.11"
 plotters = { version = "0.3", default-features = false, features = [
     "chrono",

@@ -1,6 +1,7 @@
 use iced::widget::text_input::cursor::State;
 use iced::widget::{
-    button, column, container, horizontal_space, rich_text, row, span, text, text_input, Container,
+    button, column, container, horizontal_space, rich_text, row, span, text, text_input, toggler,
+    Container,
 };
 use iced::{font, Element, Fill, Length, Task, Theme};
 
@@ -29,7 +30,15 @@ impl App {
                         .font(font::Font::with_name("Noto Sans"))
                         .size(24)],
                     horizontal_space(),
-                    button("").on_press(Message::ThemeSwitch)
+                    toggler(self.theme == DARK_THEME)
+                        .label(if self.theme == DARK_THEME {
+                            "☽"
+                        } else {
+                            "𖤓"
+                        })
+                        .text_shaping(text::Shaping::Advanced)
+                        .text_size(24)
+                        .on_toggle(Message::ThemeSwitch),
                 ],
                 row![
                     column![
@@ -76,8 +85,8 @@ impl App {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::ThemeSwitch => {
-                if self.theme == LIGHT_THEME {
+            Message::ThemeSwitch(checked) => {
+                if checked {
                     self.theme = DARK_THEME;
                 } else {
                     self.theme = LIGHT_THEME;
@@ -230,7 +239,7 @@ struct Channel {
 
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeSwitch,
+    ThemeSwitch(bool),
     CounterIncrement,
     CounterDecrement,
     // Vcore Updates
