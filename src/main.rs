@@ -24,22 +24,48 @@ impl App {
     fn view(&self) -> Container<Message> {
         container(
             column![
+                row![
+                    rich_text![span("GEPS-App")
+                        .font(font::Font::with_name("Noto Sans"))
+                        .size(24)],
+                    horizontal_space(),
+                    button("").on_press(Message::ThemeSwitch)
+                ],
+                row![
+                    column![
+                        text("").size(12),
+                        text("Voltage Set   (V):"),
+                        text("Current Limit (A):"),
+                    ]
+                    .spacing(20)
+                    .padding(10),
+                    column![
+                        text("VCORE"),
+                        text_input("Amogus...", &self.vcore.voltage_set)
+                            .on_input(Message::VcoreVoltageUpdate)
+                            .on_submit(Message::VcoreSetpointSubmit),
+                        text_input("Amogus...", &self.vcore.current_lim)
+                            .on_input(Message::VcoreCurrentUpdate)
+                            .on_submit(Message::VcoreSetpointSubmit),
+                    ]
+                    .spacing(10)
+                    .padding(10),
+                    column![
+                        text("VMEM"),
+                        text_input("Amogus...", &self.vmem.voltage_set)
+                            .on_input(Message::VmemVoltageUpdate)
+                            .on_submit(Message::VmemSetpointSubmit),
+                        text_input("Amogus...", &self.vmem.current_lim)
+                            .on_input(Message::VmemCurrentUpdate)
+                            .on_submit(Message::VmemSetpointSubmit)
+                    ]
+                    .spacing(10)
+                    .padding(10),
+                ],
+                self.chart.view(),
                 button("+").on_press(Message::CounterIncrement),
                 text(self.counter),
                 button("-").on_press(Message::CounterDecrement),
-                text(self.slider),
-                slider(0.8..=2.0, self.slider, Message::SliderUpdate),
-                row![
-                    text("Voltage Setpoint:"),
-                    text_input("Retards...", &self.voltage_set)
-                    text_input("Amogus...", &self.voltage_set)
-                        .id(text_input::Id::new("rawr"))
-                        .on_input(Message::VoltageSetpointUpdate)
-                        .on_submit(Message::VoltageSetpointSubmit)
-                ]
-                .spacing(10)
-                .padding(10),
-                self.chart.view()
             ]
             .spacing(10),
         )
