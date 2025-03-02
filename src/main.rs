@@ -9,10 +9,13 @@ use std::{collections::VecDeque, time::Instant};
 use chrono::{DateTime, Utc};
 
 const PLOT_LINE_COLOR: RGBColor = RGBColor(0, 175, 255);
+const LIGHT_THEME: Theme = Theme::CatppuccinLatte;
+const DARK_THEME: Theme = Theme::CatppuccinFrappe;
 
 pub fn main() -> iced::Result {
     let app = App::default();
     iced::application("Amogus", App::update, App::view)
+        .theme(theme)
         .run()
 }
 
@@ -46,6 +49,14 @@ impl App {
 
     fn update(&mut self, message: Message) {
         match message {
+            Message::ThemeSwitch => {
+                if self.theme == LIGHT_THEME {
+                    self.theme = DARK_THEME;
+                } else {
+                    self.theme = LIGHT_THEME;
+                }
+                self.chart.theme = self.theme.clone();
+            }
             Message::CounterIncrement => {
                 self.counter += 1;
                 self.chart.data_points.push_front((
@@ -84,6 +95,7 @@ impl App {
 #[derive(Default)]
 struct DataChart {
     data_points: VecDeque<(DateTime<Utc>, f32)>,
+    theme: Theme,
 }
 
 impl DataChart {
@@ -170,6 +182,7 @@ struct App {
     vcore: Channel,
     vmem: Channel,
     chart: DataChart,
+    theme: Theme,
 }
 
 impl Default for App {
@@ -179,6 +192,7 @@ impl Default for App {
             vcore: Channel::default(),
             vmem: Channel::default(),
             chart: DataChart::default(),
+            theme: DARK_THEME,
         }
     }
 }
@@ -191,6 +205,7 @@ struct Channel {
 
 #[derive(Debug, Clone)]
 enum Message {
+    ThemeSwitch,
     CounterIncrement,
     CounterDecrement,
     // Vcore Updates
@@ -215,8 +230,6 @@ fn generate_data() -> VecDeque<(f32, f32)> {
     println!("Generating Data");
 
     return data.into();
+fn theme(state: &App) -> Theme {
+    state.theme.clone()
 }
-
-// fn theme(state: &State) -> Theme {
-//     Theme::TokyoNight
-// }
