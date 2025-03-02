@@ -119,6 +119,12 @@ impl Chart<Message> for DataChart {
     fn build_chart<DB: DrawingBackend>(&self, state: &Self::State, mut builder: ChartBuilder<DB>) {
         use plotters::prelude::*;
 
+        let font_style = ("Noto Sans", 15)
+            .into_font()
+            .transform(FontTransform::Rotate90)
+            .color(&text_color.mix(0.65));
+
+        // Generate Timescale
         let newest_time = self
             .data_points
             .front()
@@ -147,13 +153,9 @@ impl Chart<Message> for DataChart {
             .light_line_style(plotters::style::colors::BLUE.mix(0.05))
             .axis_style(ShapeStyle::from(plotters::style::colors::BLUE.mix(0.45)).stroke_width(1))
             .y_labels(10)
-            .y_label_style(
-                ("Noto Sans", 15)
-                    .into_font()
-                    .color(&plotters::style::colors::BLUE.mix(0.65))
-                    .transform(FontTransform::Rotate90),
-            )
+            .y_label_style(font_style.clone())
             .y_label_formatter(&|y| format!("{}", y))
+            .x_label_style(font_style.clone())
             .x_label_formatter(&|x| x.format("%M:%S").to_string())
             .draw()
             .expect("failed to draw chart mesh");
