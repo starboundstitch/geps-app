@@ -218,18 +218,6 @@ enum Message {
     VmemSetpointSubmit,
 }
 
-fn generate_data() -> VecDeque<(f32, f32)> {
-    let num_points = 100;
-    let mut data = Vec::new();
-    let mut rng = rand::rng();
-
-    while data.len() < num_points {
-        data.push((data.len() as f32, rng.random_range(-10..10) as f32))
-    }
-
-    println!("Generating Data");
-
-    return data.into();
 fn theme(state: &App) -> Theme {
     state.theme.clone()
 }
