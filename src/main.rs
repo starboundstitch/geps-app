@@ -119,6 +119,13 @@ impl Chart<Message> for DataChart {
     fn build_chart<DB: DrawingBackend>(&self, state: &Self::State, mut builder: ChartBuilder<DB>) {
         use plotters::prelude::*;
 
+        let text_color: [u8; 4] = self.theme.palette().text.into_rgba8();
+        let text_color: RGBColor = RGBColor(text_color[0], text_color[1], text_color[2]);
+
+        let primary_color: [u8; 4] = self.theme.palette().primary.into_rgba8();
+        let primary_color: RGBColor =
+            RGBColor(primary_color[0], primary_color[1], primary_color[2]);
+
         let font_style = ("Noto Sans", 15)
             .into_font()
             .transform(FontTransform::Rotate90)
@@ -140,18 +147,22 @@ impl Chart<Message> for DataChart {
             }
         }
 
+        // Build the Graph
         let mut chart = builder
             .x_label_area_size(28)
             .y_label_area_size(28)
             .margin(20)
+            .margin_right(48)
             .build_cartesian_2d(oldest_time..newest_time, -10.0_f32..10.0_f32)
             .expect("failed to build chart");
 
+        // Build Legend and Text
         chart
             .configure_mesh()
-            .bold_line_style(plotters::style::colors::BLUE.mix(0.1))
-            .light_line_style(plotters::style::colors::BLUE.mix(0.05))
-            .axis_style(ShapeStyle::from(plotters::style::colors::BLUE.mix(0.45)).stroke_width(1))
+            .bold_line_style(text_color.mix(0.1))
+            .bold_line_style(text_color.mix(0.1))
+            .light_line_style(text_color.mix(0.05))
+            .axis_style(ShapeStyle::from(text_color.mix(0.45)).stroke_width(2))
             .y_labels(10)
             .y_label_style(font_style.clone())
             .y_label_formatter(&|y| format!("{}", y))
@@ -162,10 +173,9 @@ impl Chart<Message> for DataChart {
 
         // println!("Displaying Chart");
 
+        // Draw the Line
         chart
-            .draw_series(LineSeries::new(
-                data, BLACK, // PLOT_LINE_COLOR.mix(0.175),
-            ))
+            .draw_series(LineSeries::new(data, primary_color))
             .expect("failed to draw area series");
     }
 }
