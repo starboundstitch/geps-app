@@ -1,14 +1,15 @@
-use iced::widget::{button, column, container, row, slider, text, text_input, Column, Container};
+use iced::widget::text_input::cursor::State;
+use iced::widget::{
+    button, column, container, horizontal_space, rich_text, row, span, text, text_input, Container,
+};
 use iced::{font, Element, Fill, Length, Task, Theme};
 
-use plotters::prelude::*;
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 use rand::Rng;
-use std::{collections::VecDeque, time::Instant};
+use std::collections::VecDeque;
 
 use chrono::{DateTime, Utc};
 
-const PLOT_LINE_COLOR: RGBColor = RGBColor(0, 175, 255);
 const LIGHT_THEME: Theme = Theme::CatppuccinLatte;
 const DARK_THEME: Theme = Theme::CatppuccinFrappe;
 
@@ -116,6 +117,8 @@ impl DataChart {
 impl Chart<Message> for DataChart {
     type State = ();
     fn build_chart<DB: DrawingBackend>(&self, state: &Self::State, mut builder: ChartBuilder<DB>) {
+        use plotters::prelude::*;
+
         let newest_time = self
             .data_points
             .front()
