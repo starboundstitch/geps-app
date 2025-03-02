@@ -65,20 +65,22 @@ impl App {
             }
             Message::CounterDecrement => {
                 self.counter -= 1;
-                // self.chart.data_points.append(&mut generate_data());
             }
-            Message::SliderUpdate(slider) => self.slider = slider,
-            Message::VoltageSetpointUpdate(cont) => {
-                self.voltage_set = cont.clone();
+            Message::VcoreVoltageUpdate(val) => {
+                self.vcore.voltage_set = val.clone();
             }
-            Message::VoltageSetpointSubmit => {
-                let opt = self.voltage_set.clone().parse();
-                match opt {
-                    Ok(val) => {
-                        self.slider = val;
-                    }
-                    Err(val) => println!("Dies: {}", val),
-                }
+            Message::VcoreCurrentUpdate(val) => {
+                self.vcore.current_lim = val.clone();
+            }
+            Message::VmemVoltageUpdate(val) => {
+                self.vmem.voltage_set = val.clone();
+            }
+            Message::VmemCurrentUpdate(val) => {
+                self.vmem.current_lim = val.clone();
+            }
+            Message::VcoreSetpointSubmit => {
+            }
+            Message::VmemSetpointSubmit => {
             }
         }
     }
@@ -167,21 +169,42 @@ impl Chart<Message> for DataChart {
     }
 }
 
-#[derive(Default)]
 struct App {
     counter: i64,
-    slider: f32,
-    voltage_set: String,
+    vcore: Channel,
+    vmem: Channel,
     chart: DataChart,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self {
+            counter: 0,
+            vcore: Channel::default(),
+            vmem: Channel::default(),
+            chart: DataChart::default(),
+        }
+    }
+}
+
+#[derive(Default)]
+struct Channel {
+    voltage_set: String,
+    current_lim: String,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     CounterIncrement,
     CounterDecrement,
-    SliderUpdate(f32),
-    VoltageSetpointUpdate(String),
-    VoltageSetpointSubmit,
+    // Vcore Updates
+    VcoreVoltageUpdate(String),
+    VcoreCurrentUpdate(String),
+    VcoreSetpointSubmit,
+    // Vmem Updates
+    VmemVoltageUpdate(String),
+    VmemCurrentUpdate(String),
+    VmemSetpointSubmit,
 }
 
 fn generate_data() -> VecDeque<(f32, f32)> {
