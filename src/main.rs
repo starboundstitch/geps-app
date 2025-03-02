@@ -11,13 +11,9 @@ use chrono::{DateTime, Utc};
 const PLOT_LINE_COLOR: RGBColor = RGBColor(0, 175, 255);
 
 pub fn main() -> iced::Result {
-    let mut app = App {
-        counter: 0,
-        slider: 0.,
-        voltage_set: String::new(),
-        chart: DataChart::new(),
-    };
-    iced::application("Amogus", App::update, App::view).run()
+    let app = App::default();
+    iced::application("Amogus", App::update, App::view)
+        .run()
 }
 
 impl App {
@@ -91,11 +87,11 @@ struct DataChart {
 }
 
 impl DataChart {
-    fn new() -> Self {
-        // let data_points: VecDeque<_> = generate_data();
-        // Self { data_points }
-        let data_points: VecDeque<(DateTime<Utc>, f32)> = Vec::new().into();
-        Self { data_points }
+    fn default() -> Self {
+        Self {
+            data_points: VecDeque::new(),
+            theme: DARK_THEME,
+        }
     }
 
     fn view(&self) -> Element<Message> {
