@@ -165,18 +165,6 @@ impl Chart<Message> for DataChart {
                 data, BLACK, // PLOT_LINE_COLOR.mix(0.175),
             ))
             .expect("failed to draw area series");
-        // chart
-        // .draw_series(LineSeries::new(
-        //     self.data_points.iter().cloned(),
-        //     PLOT_LINE_COLOR.mix(0.175),
-        // ))
-        // .expect("failed to draw the line series");
-        // chart
-        //     .draw_series(LineSeries::new(
-        //         (0..100).map(|x| (x as f32, (100 - x) as f32)),
-        //         &BLACK,
-        //     ))
-        //     .expect("you're a failure");
     }
 }
 
