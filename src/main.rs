@@ -60,11 +60,9 @@ impl App {
             }
             Message::CounterIncrement => {
                 self.counter += 1;
-                self.chart.data_points.push_front((
-                    // rand::rng().random_range(1..100) as f32,
-                    Utc::now(),
-                    rand::rng().random_range(-10..10) as f32,
-                ));
+                self.chart
+                    .data_points
+                    .push_front((Utc::now(), rand::rng().random_range(-10..10) as f32));
                 // let input = iced::Task::run(text_input::select_all(text_input::Id::new("rawr")));
                 // input.unfocus();
                 // text_input::State::unfocus(input.unfocus());
