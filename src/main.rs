@@ -139,14 +139,6 @@ impl Chart<Message> for DataChart {
             .0;
         let oldest_time = newest_time - chrono::Duration::seconds(60);
 
-        // Truncate OOB Data
-        let mut data: VecDeque<(DateTime<Utc>, f32)> = Vec::new().into();
-        for point in self.data_points.clone() {
-            if point.0 > oldest_time {
-                data.push_front(point);
-            }
-        }
-
         // Build the Graph
         let mut chart = builder
             .x_label_area_size(28)
@@ -171,7 +163,13 @@ impl Chart<Message> for DataChart {
             .draw()
             .expect("failed to draw chart mesh");
 
-        // println!("Displaying Chart");
+        // Truncate OOB Data
+        let mut data: VecDeque<(DateTime<Utc>, f32)> = Vec::new().into();
+        for point in self.data_points.clone() {
+            if point.0 > oldest_time {
+                data.push_front(point);
+            }
+        }
 
         // Draw the Line
         chart
