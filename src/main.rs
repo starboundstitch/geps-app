@@ -1,13 +1,14 @@
-use iced::widget::text_input::cursor::State;
 use iced::widget::{
     button, column, container, horizontal_space, rich_text, row, span, text, text_input, toggler,
     Container,
 };
-use iced::{font, Element, Fill, Length, Task, Theme};
+use iced::{font, Element, Fill, Length, Subscription, Task, Theme};
 
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 use rand::Rng;
 use std::collections::VecDeque;
+
+use iced::time::{self, Duration, Instant};
 
 use chrono::{DateTime, Utc};
 
@@ -18,6 +19,7 @@ pub fn main() -> iced::Result {
     let app = App::default();
     iced::application("Amogus", App::update, App::view)
         .theme(theme)
+        .subscription(App::subscription)
         .run()
 }
 
@@ -80,7 +82,10 @@ impl App {
         )
         .padding(10)
         .center_x(Fill)
-        .into()
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        time::every(Duration::from_millis(100)).map(Message::Update)
     }
 
     fn update(&mut self, message: Message) {
@@ -106,6 +111,12 @@ impl App {
             }
             Message::CounterDecrement => {
                 self.counter -= 1;
+            }
+            Message::Update(_time) => {
+                // Generate random data every chart tick
+                self.chart
+                    .data_points
+                    .push_front((Utc::now(), rand::rng().random_range(-1..1) as f32));
             }
             Message::VcoreVoltageUpdate(val) => {
                 self.vcore.voltage_set = val.clone();
@@ -141,7 +152,6 @@ impl DataChart {
     }
 
     fn view(&self) -> Element<Message> {
-        println!("Data Points: {:?}", self.data_points);
         let chart = ChartWidget::new(self).width(Length::Fill);
         chart.into()
     }
@@ -240,6 +250,7 @@ struct Channel {
 #[derive(Debug, Clone)]
 enum Message {
     ThemeSwitch(bool),
+    Update(Instant),
     CounterIncrement,
     CounterDecrement,
     // Vcore Updates
