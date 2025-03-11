@@ -102,7 +102,7 @@ impl App {
                 self.counter += 1;
                 self.chart
                     .data_points
-                    .push_front((Utc::now(), rand::rng().random_range(-10..10) as f32));
+                    .push_front((Utc::now(), rand::rng().random_range(-10.0..10.)));
                 // let input = iced::Task::run(text_input::select_all(text_input::Id::new("rawr")));
                 // input.unfocus();
                 // text_input::State::unfocus(input.unfocus());
@@ -114,9 +114,10 @@ impl App {
             }
             Message::Update(_time) => {
                 // Generate random data every chart tick
-                self.chart
-                    .data_points
-                    .push_front((Utc::now(), rand::rng().random_range(-1..1) as f32));
+                self.chart.data_points.push_front((
+                    Utc::now(),
+                    self.vcore.voltage + rand::rng().random_range(-1..1) as f32,
+                ));
             }
             Message::VcoreVoltageUpdate(val) => {
                 self.vcore.voltage_set = val.clone();
@@ -131,6 +132,13 @@ impl App {
                 self.vmem.current_lim = val.clone();
             }
             Message::VcoreSetpointSubmit => {
+                let opt = self.vcore.voltage_set.clone().parse();
+                match opt {
+                    Ok(val) => {
+                        self.vcore.voltage = val;
+                    }
+                    Err(val) => println!("Incorrect Input: {}", val),
+                }
             }
             Message::VmemSetpointSubmit => {
             }
@@ -243,6 +251,7 @@ impl Default for App {
 
 #[derive(Default)]
 struct Channel {
+    voltage: f32,
     voltage_set: String,
     current_lim: String,
 }
