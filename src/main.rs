@@ -58,7 +58,7 @@ impl App {
                             .on_submit(Message::VcoreSetpointSubmit),
                         text_input("Amogus...", &self.vcore.current_lim)
                             .on_input(Message::VcoreCurrentUpdate)
-                            .on_submit(Message::VcoreSetpointSubmit),
+                            .on_submit(Message::VcoreCurrentSubmit),
                     ]
                     .spacing(10)
                     .padding(10),
@@ -69,7 +69,7 @@ impl App {
                             .on_submit(Message::VmemSetpointSubmit),
                         text_input("Amogus...", &self.vmem.current_lim)
                             .on_input(Message::VmemCurrentUpdate)
-                            .on_submit(Message::VmemSetpointSubmit)
+                            .on_submit(Message::VmemCurrentSubmit)
                     ]
                     .spacing(10)
                     .padding(10),
@@ -133,17 +133,28 @@ impl App {
                 self.vmem.current_lim = val.clone();
             }
             Message::VcoreSetpointSubmit => {
-                let opt = self.vcore.voltage_set.clone().parse();
-                match opt {
-                    Ok(val) => {
-                        self.vcore.voltage = val;
-                    }
-                    Err(val) => println!("Incorrect Input: {}", val),
-                }
+                self.vcore.voltage = App::text_submit(&self.vcore.voltage_set);
             }
             Message::VmemSetpointSubmit => {
+                self.vmem.voltage = App::text_submit(&self.vcore.voltage_set);
+            }
+            Message::VcoreCurrentSubmit => {
+                self.vcore.current = App::text_submit(&self.vcore.current_lim);
+            }
+            Message::VmemCurrentSubmit => {
+                self.vmem.current = App::text_submit(&self.vcore.current_lim);
             }
         }
+    }
+
+    fn text_submit(input: &String) -> f32 {
+        match input.clone().parse() {
+            Ok(val) => {
+                return val;
+            }
+            Err(val) => println!("Incorrect Input: {}", val),
+        }
+        return 0.;
     }
 }
 #[derive(Default)]
@@ -253,6 +264,8 @@ impl Default for App {
 #[derive(Default)]
 struct Channel {
     voltage: f32,
+    current: f32,
+    temperature: f32,
     voltage_set: String,
     current_lim: String,
 }
@@ -267,10 +280,12 @@ enum Message {
     VcoreVoltageUpdate(String),
     VcoreCurrentUpdate(String),
     VcoreSetpointSubmit,
+    VcoreCurrentSubmit,
     // Vmem Updates
     VmemVoltageUpdate(String),
     VmemCurrentUpdate(String),
     VmemSetpointSubmit,
+    VmemCurrentSubmit,
 }
 
 fn theme(state: &App) -> Theme {
