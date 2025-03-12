@@ -2,7 +2,7 @@ use iced::widget::{
     button, column, container, horizontal_space, rich_text, row, span, text, text_input, toggler,
     Container,
 };
-use iced::{font, Element, Fill, Length, Subscription, Task, Theme};
+use iced::{font, Element, Fill, Length, Subscription, Theme};
 
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 use rand::Rng;
@@ -16,10 +16,11 @@ const LIGHT_THEME: Theme = Theme::CatppuccinLatte;
 const DARK_THEME: Theme = Theme::CatppuccinFrappe;
 
 pub fn main() -> iced::Result {
-    let app = App::default();
+    let _app = App::default();
     iced::application("Amogus", App::update, App::view)
         .theme(theme)
         .subscription(App::subscription)
+        .antialiasing(true)
         .run()
 }
 
