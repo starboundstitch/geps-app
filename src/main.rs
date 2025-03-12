@@ -147,14 +147,14 @@ impl App {
         }
     }
 
-    fn text_submit(input: &String) -> f32 {
-        match input.clone().parse() {
+    fn text_submit(input: &str) -> f32 {
+        match input.to_owned().parse() {
             Ok(val) => {
                 return val;
             }
             Err(val) => println!("Incorrect Input: {}", val),
         }
-        return 0.;
+        0.
     }
 }
 #[derive(Default)]
@@ -179,7 +179,7 @@ impl DataChart {
 
 impl Chart<Message> for DataChart {
     type State = ();
-    fn build_chart<DB: DrawingBackend>(&self, state: &Self::State, mut builder: ChartBuilder<DB>) {
+    fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, mut builder: ChartBuilder<DB>) {
         use plotters::prelude::*;
 
         let text_color: [u8; 4] = self.theme.palette().text.into_rgba8();
