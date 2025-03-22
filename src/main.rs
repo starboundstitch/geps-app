@@ -80,9 +80,6 @@ impl App {
                     horizontal_space(),
                     button("Collect Data").on_press(Message::CollectData),
                 ],
-                button("+").on_press(Message::CounterIncrement),
-                text(self.counter),
-                button("-").on_press(Message::CounterDecrement),
             ]
             .spacing(10),
         )
@@ -103,17 +100,6 @@ impl App {
                     self.theme = LIGHT_THEME;
                 }
                 self.chart.theme = self.theme.clone();
-            }
-            Message::CounterIncrement => {
-                self.counter += 1;
-                // let input = iced::Task::run(text_input::select_all(text_input::Id::new("rawr")));
-                // input.unfocus();
-                // text_input::State::unfocus(input.unfocus());
-                // text_input::Id::new("rawr").type_id;
-                // return text_input::focus();
-            }
-            Message::CounterDecrement => {
-                self.counter -= 1;
             }
             Message::CollectData => {
                 if self.data_collect_time == -1 {
@@ -326,7 +312,6 @@ impl Chart<Message> for DataChart {
 }
 
 struct App {
-    counter: i64,
     vcore: Channel,
     vmem: Channel,
     data_collect_time: i32,
@@ -338,7 +323,6 @@ struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
-            counter: 0,
             vcore: Channel::default(),
             vmem: Channel::default(),
             data_collect_time: -1,
@@ -364,8 +348,6 @@ enum Message {
     Update(Instant),
     StartCollectData(Option<rfd::FileHandle>),
     CollectData,
-    CounterIncrement,
-    CounterDecrement,
     // Vcore Updates
     VcoreVoltageUpdate(String),
     VcoreCurrentUpdate(String),
