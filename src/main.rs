@@ -2,11 +2,12 @@ use iced::widget::{
     button, column, container, horizontal_space, rich_text, row, span, text, text_input, toggler,
     Container,
 };
-use iced::{font, Element, Fill, Length, Subscription, Theme};
+use iced::{font, Element, Fill, Length, Subscription, Task, Theme};
 
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 use rand::Rng;
 use std::collections::VecDeque;
+use std::fs::File;
 
 use iced::time::{self, Duration, Instant};
 
@@ -75,6 +76,10 @@ impl App {
                     .padding(10),
                 ],
                 self.chart.view(),
+                row![
+                    horizontal_space(),
+                    button("Collect Data").on_press(Message::CollectData),
+                ],
                 button("+").on_press(Message::CounterIncrement),
                 text(self.counter),
                 button("-").on_press(Message::CounterDecrement),
@@ -89,7 +94,7 @@ impl App {
         time::every(Duration::from_millis(100)).map(Message::Update)
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> iced::Task<Message> {
         match message {
             Message::ThemeSwitch(checked) => {
                 if checked {
@@ -101,9 +106,6 @@ impl App {
             }
             Message::CounterIncrement => {
                 self.counter += 1;
-                self.chart
-                    .data_points
-                    .push_front((Utc::now(), rand::rng().random_range(-10.0..10.)));
                 // let input = iced::Task::run(text_input::select_all(text_input::Id::new("rawr")));
                 // input.unfocus();
                 // text_input::State::unfocus(input.unfocus());
@@ -113,12 +115,80 @@ impl App {
             Message::CounterDecrement => {
                 self.counter -= 1;
             }
+            Message::CollectData => {
+                if self.data_collect_time == -1 {
+                    // File Picker
+                    let picked_file = rfd::FileDialog::new()
+                        .add_filter("csv", &["txt", "csv"])
+                        .set_directory(std::env::current_dir().unwrap())
+                        .save_file();
+
+                    // Get the actual PATH
+                    let path = match picked_file {
+                        Some(file) => file,
+                        None => return Task::none(),
+                    };
+
+                    self.data_collect_file = match File::create(path) {
+                        Err(why) => {
+                            println!("Failed to Create File: {}", why);
+                            return Task::none();
+                        }
+                        Ok(file) => Some(file),
+                    };
+
+                    // Write Header Line
+                    let mut wtr =
+                        csv::Writer::from_writer(self.data_collect_file.as_ref().unwrap());
+                    wtr.write_record(&[
+                        "Vcore Voltage".to_string(),
+                        "Vcore Current".to_string(),
+                        "Vcore Temperature".to_string(),
+                        "Vmem Voltage".to_string(),
+                        "Vmem Current".to_string(),
+                        "Vmem Temperature".to_string(),
+                    ])
+                    .expect("File Error:");
+
+                    self.data_collect_time = 0;
+
+                    println!("Starting Data Collection");
+                } else {
+                    self.stop_data();
+                }
+            }
             Message::Update(_time) => {
-                // Generate random data every chart tick
-                self.chart.data_points.push_front((
-                    Utc::now(),
-                    self.vcore.voltage + rand::rng().random_range(-1..1) as f32,
-                ));
+                //** Update Values for Each Channel (migrate to serial comm. later)
+                self.vcore.voltage += rand::rng().random_range(-0.1..0.1);
+                self.vcore.current += rand::rng().random_range(-1.0..1.0);
+                self.vcore.temperature += rand::rng().random_range(-0.1..0.1);
+                self.vmem.voltage += rand::rng().random_range(-0.1..0.1);
+                self.vmem.current += rand::rng().random_range(-1.0..1.0);
+                self.vmem.temperature += rand::rng().random_range(-0.1..0.1);
+                //** Update Chart From Values
+                self.chart
+                    .data_points
+                    .push_front((Utc::now(), self.vcore.voltage));
+
+                // Check if logging and then output data from here
+                if self.data_collect_time < 0 {
+                    // Collect Data if in Collection Time
+                } else if self.data_collect_time < 10 * 60 {
+                    let mut wtr =
+                        csv::Writer::from_writer(self.data_collect_file.as_ref().unwrap());
+                    wtr.write_record(&[
+                        self.vcore.voltage.to_string(),
+                        self.vcore.current.to_string(),
+                        self.vcore.temperature.to_string(),
+                        self.vmem.voltage.to_string(),
+                        self.vmem.current.to_string(),
+                        self.vmem.temperature.to_string(),
+                    ])
+                    .expect("File Error:");
+                    self.data_collect_time += 1;
+                } else {
+                    self.stop_data();
+                }
             }
             Message::VcoreVoltageUpdate(val) => {
                 self.vcore.voltage_set = val.clone();
@@ -145,6 +215,7 @@ impl App {
                 self.vmem.current = App::text_submit(&self.vcore.current_lim);
             }
         }
+        Task::none()
     }
 
     fn text_submit(input: &str) -> f32 {
@@ -155,6 +226,12 @@ impl App {
             Err(val) => println!("Incorrect Input: {}", val),
         }
         0.
+    }
+
+    fn stop_data(&mut self) {
+        println!("Stopping Data Collection");
+        self.data_collect_time = -1;
+        self.data_collect_file = None;
     }
 }
 #[derive(Default)]
@@ -245,6 +322,8 @@ struct App {
     counter: i64,
     vcore: Channel,
     vmem: Channel,
+    data_collect_time: i32,
+    data_collect_file: Option<File>,
     chart: DataChart,
     theme: Theme,
 }
@@ -255,6 +334,8 @@ impl Default for App {
             counter: 0,
             vcore: Channel::default(),
             vmem: Channel::default(),
+            data_collect_time: -1,
+            data_collect_file: None,
             chart: DataChart::default(),
             theme: DARK_THEME,
         }
@@ -274,6 +355,7 @@ struct Channel {
 enum Message {
     ThemeSwitch(bool),
     Update(Instant),
+    CollectData,
     CounterIncrement,
     CounterDecrement,
     // Vcore Updates
