@@ -117,19 +117,26 @@ impl App {
             }
             Message::CollectData => {
                 if self.data_collect_time == -1 {
-                    // File Picker
-                    let picked_file = rfd::FileDialog::new()
-                        .add_filter("csv", &["txt", "csv"])
-                        .set_directory(std::env::current_dir().unwrap())
-                        .save_file();
-
+                    return Task::perform(
+                        rfd::AsyncFileDialog::new()
+                            .add_filter("csv", &["txt", "csv"])
+                            .set_directory(std::env::current_dir().unwrap())
+                            .save_file(),
+                        Message::StartCollectData,
+                    );
+                } else {
+                    self.stop_data();
+                }
+            }
+            Message::StartCollectData(picked_file) => {
+                if self.data_collect_time == -1 {
                     // Get the actual PATH
-                    let path = match picked_file {
+                    let file = match picked_file {
                         Some(file) => file,
                         None => return Task::none(),
                     };
 
-                    self.data_collect_file = match File::create(path) {
+                    self.data_collect_file = match File::create(file.path()) {
                         Err(why) => {
                             println!("Failed to Create File: {}", why);
                             return Task::none();
@@ -355,6 +362,7 @@ struct Channel {
 enum Message {
     ThemeSwitch(bool),
     Update(Instant),
+    StartCollectData(Option<rfd::FileHandle>),
     CollectData,
     CounterIncrement,
     CounterDecrement,
