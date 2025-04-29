@@ -1,6 +1,6 @@
 use iced::widget::{
-    button, column, container, horizontal_space, rich_text, row, span, text, text_input, toggler,
-    Container,
+    button, column, container, horizontal_space, pick_list, rich_text, row, span, text, text_input,
+    toggler, Container,
 };
 use iced::{font, Element, Fill, Length, Subscription, Task, Theme};
 
@@ -27,6 +27,13 @@ pub fn main() -> iced::Result {
 
 impl App {
     fn view(&self) -> Container<Message> {
+        // Serial Ports
+        let ports = serialport::available_ports().expect("No ports found!");
+        let mut port_names: Vec<String> = vec![];
+        for p in ports {
+            port_names.push(p.port_name);
+        }
+
         container(
             column![
                 row![
@@ -34,6 +41,13 @@ impl App {
                         .font(font::Font::with_name("Noto Sans"))
                         .size(24)],
                     horizontal_space(),
+                    pick_list(
+                        port_names,
+                        self.selected_port.clone(),
+                        Message::PortSelected
+                    )
+                    .placeholder("Select Serial Port..."),
+                    button("O").on_press(Message::PortOpen), // 󱘖
                     toggler(self.theme == DARK_THEME)
                         .label(if self.theme == DARK_THEME {
                             "☽"
@@ -43,7 +57,8 @@ impl App {
                         .text_shaping(text::Shaping::Advanced)
                         .text_size(24)
                         .on_toggle(Message::ThemeSwitch),
-                ],
+                ]
+                .spacing(10),
                 row![
                     column![
                         text("").size(12),
@@ -151,6 +166,32 @@ impl App {
                 }
             }
             Message::Update(_time) => {
+                // Serial Bincode BS
+                let mut serial_buf: Vec<u8> = vec![0; 64];
+                let has_data;
+                match &mut self.serial_port {
+                    Some(val) => match val.read(serial_buf.as_mut_slice()) {
+                        Ok(_val) => has_data = true,
+                        Err(_val) => has_data = false,
+                    },
+                    None => has_data = false,
+                }
+
+                if has_data {
+                    // Get Device Struct
+                    let decoded: Device =
+                        bincode::decode_from_slice(&serial_buf, bincode::config::standard())
+                            .unwrap()
+                            .0;
+                    self.device = decoded;
+
+                    // Test For Data Transfer
+                    println!(
+                        "Ch1: \n  V: {}\n  I: {}",
+                        self.device.core.voltage, self.device.core.current
+                    );
+                }
+
                 //** Update Values for Each Channel (migrate to serial comm. later)
                 self.vcore.voltage += rand::rng().random_range(-0.1..0.1);
                 self.vcore.current += rand::rng().random_range(-1.0..1.0);
@@ -182,6 +223,16 @@ impl App {
                 } else {
                     self.stop_data();
                 }
+            }
+            Message::PortSelected(val) => {
+                self.selected_port = Some(val);
+            }
+            Message::PortOpen => {
+                let port = serialport::new(self.selected_port.clone().unwrap(), 9600)
+                    .timeout(Duration::from_millis(10))
+                    .open()
+                    .expect("Failed to Open Port");
+                self.serial_port = Some(port);
             }
             Message::VcoreVoltageUpdate(val) => {
                 self.vcore.voltage_set = val.clone();
@@ -312,34 +363,48 @@ impl Chart<Message> for DataChart {
 }
 
 struct App {
+    device: Device,
     vcore: Channel,
     vmem: Channel,
     data_collect_time: i32,
     data_collect_file: Option<File>,
     chart: DataChart,
     theme: Theme,
+    selected_port: Option<String>,
+    serial_port: Option<Box<dyn serialport::SerialPort>>,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
+            device: Device::default(),
             vcore: Channel::default(),
             vmem: Channel::default(),
             data_collect_time: -1,
             data_collect_file: None,
             chart: DataChart::default(),
             theme: DARK_THEME,
+            selected_port: None,
+            serial_port: None,
         }
     }
 }
 
-#[derive(Default)]
+#[derive(Default, bincode::Decode, bincode::Encode)]
+pub struct Device {
+    core: Channel,
+    mem: Channel,
+}
+
+#[derive(Default, bincode::Decode, bincode::Encode)]
 struct Channel {
     voltage: f32,
+    voltage_setpoint: f32,
     current: f32,
+    current_limit: f32,
     temperature: f32,
-    voltage_set: String,
-    current_lim: String,
+    voltage_set: String, // Not on uC
+    current_lim: String, // Not on uC
 }
 
 #[derive(Debug, Clone)]
@@ -358,6 +423,9 @@ enum Message {
     VmemCurrentUpdate(String),
     VmemSetpointSubmit,
     VmemCurrentSubmit,
+    // Serial Stuff
+    PortSelected(String),
+    PortOpen,
 }
 
 fn theme(state: &App) -> Theme {
