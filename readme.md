@@ -11,3 +11,7 @@ This is the computer application for the [GPU-External-Power-Supply](https://git
 - [ ] Setting Values to Microcontroller
 - [ ] Alerts from Microcontroller
 - [ ] Notification on Value Unable to be Set
+
+## License
+
+The code in this repository is licensed under the GPLv3 according to the [LICENSE](https://github.com/starboundstitch/geps-app/blob/master/LICENSE) file.
