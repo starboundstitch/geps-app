@@ -5,7 +5,6 @@ use iced::widget::{
 use iced::{font, Element, Fill, Length, Subscription, Task, Theme};
 
 use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
-use rand::Rng;
 use std::collections::VecDeque;
 use std::fs::File;
 
@@ -69,10 +68,10 @@ impl App {
                     .padding(10),
                     column![
                         text("VCORE"),
-                        text_input("Amogus...", &self.vcore.voltage_set)
+                        text_input("Amogus...", &self.core_set)
                             .on_input(Message::VcoreVoltageUpdate)
                             .on_submit(Message::VcoreSetpointSubmit),
-                        text_input("Amogus...", &self.vcore.current_lim)
+                        text_input("Amogus...", &self.core_lim)
                             .on_input(Message::VcoreCurrentUpdate)
                             .on_submit(Message::VcoreCurrentSubmit),
                     ]
@@ -80,10 +79,10 @@ impl App {
                     .padding(10),
                     column![
                         text("VMEM"),
-                        text_input("Amogus...", &self.vmem.voltage_set)
+                        text_input("Amogus...", &self.mem_set)
                             .on_input(Message::VmemVoltageUpdate)
                             .on_submit(Message::VmemSetpointSubmit),
-                        text_input("Amogus...", &self.vmem.current_lim)
+                        text_input("Amogus...", &self.mem_lim)
                             .on_input(Message::VmemCurrentUpdate)
                             .on_submit(Message::VmemCurrentSubmit)
                     ]
@@ -150,10 +149,14 @@ impl App {
                         csv::Writer::from_writer(self.data_collect_file.as_ref().unwrap());
                     wtr.write_record(&[
                         "Vcore Voltage".to_string(),
+                        "Vcore Voltage Setpoint".to_string(),
                         "Vcore Current".to_string(),
+                        "Vcore Current Limit".to_string(),
                         "Vcore Temperature".to_string(),
                         "Vmem Voltage".to_string(),
+                        "Vmem Voltage Setpoint".to_string(),
                         "Vmem Current".to_string(),
+                        "Vmem Current Limit".to_string(),
                         "Vmem Temperature".to_string(),
                     ])
                     .expect("File Error:");
@@ -167,11 +170,12 @@ impl App {
             }
             Message::Update(_time) => {
                 // Serial Bincode BS
-                let mut serial_buf: Vec<u8> = vec![0; 64];
+                let mut serial_buf: Vec<u8> = vec![0; 128];
                 let has_data;
                 match &mut self.serial_port {
                     Some(val) => match val.read(serial_buf.as_mut_slice()) {
                         Ok(_val) => has_data = true,
+                        Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => has_data = false,
                         Err(_val) => has_data = false,
                     },
                     None => has_data = false,
@@ -179,30 +183,24 @@ impl App {
 
                 if has_data {
                     // Get Device Struct
-                    let decoded: Device =
-                        bincode::decode_from_slice(&serial_buf, bincode::config::standard())
-                            .unwrap()
-                            .0;
-                    self.device = decoded;
+                    let decoded =
+                        bincode::decode_from_slice(&serial_buf, bincode::config::standard());
 
-                    // Test For Data Transfer
-                    println!(
-                        "Ch1: \n  V: {}\n  I: {}",
-                        self.device.core.voltage, self.device.core.current
-                    );
+                    let decoded: Device = match decoded {
+                        Ok(val) => val.0,
+                        Err(val) => {
+                            println!("Error: {}", val);
+                            Device::default()
+                        }
+                    };
+
+                    self.device = decoded;
                 }
 
-                //** Update Values for Each Channel (migrate to serial comm. later)
-                self.vcore.voltage += rand::rng().random_range(-0.1..0.1);
-                self.vcore.current += rand::rng().random_range(-1.0..1.0);
-                self.vcore.temperature += rand::rng().random_range(-0.1..0.1);
-                self.vmem.voltage += rand::rng().random_range(-0.1..0.1);
-                self.vmem.current += rand::rng().random_range(-1.0..1.0);
-                self.vmem.temperature += rand::rng().random_range(-0.1..0.1);
                 //** Update Chart From Values
                 self.chart
                     .data_points
-                    .push_front((Utc::now(), self.vcore.voltage));
+                    .push_front((Utc::now(), self.device.mem.voltage));
 
                 // Check if logging and then output data from here
                 if self.data_collect_time < 0 {
@@ -211,12 +209,16 @@ impl App {
                     let mut wtr =
                         csv::Writer::from_writer(self.data_collect_file.as_ref().unwrap());
                     wtr.write_record(&[
-                        self.vcore.voltage.to_string(),
-                        self.vcore.current.to_string(),
-                        self.vcore.temperature.to_string(),
-                        self.vmem.voltage.to_string(),
-                        self.vmem.current.to_string(),
-                        self.vmem.temperature.to_string(),
+                        self.device.core.voltage.to_string(),
+                        self.device.core.voltage_setpoint.to_string(),
+                        self.device.core.current.to_string(),
+                        self.device.core.current_limit.to_string(),
+                        self.device.core.temperature.to_string(),
+                        self.device.mem.voltage.to_string(),
+                        self.device.mem.voltage_setpoint.to_string(),
+                        self.device.mem.current.to_string(),
+                        self.device.mem.current_limit.to_string(),
+                        self.device.mem.temperature.to_string(),
                     ])
                     .expect("File Error:");
                     self.data_collect_time += 1;
@@ -235,28 +237,24 @@ impl App {
                 self.serial_port = Some(port);
             }
             Message::VcoreVoltageUpdate(val) => {
-                self.vcore.voltage_set = val.clone();
+                self.core_set = val.clone();
             }
             Message::VcoreCurrentUpdate(val) => {
-                self.vcore.current_lim = val.clone();
+                self.core_lim = val.clone();
             }
             Message::VmemVoltageUpdate(val) => {
-                self.vmem.voltage_set = val.clone();
+                self.mem_set = val.clone();
             }
             Message::VmemCurrentUpdate(val) => {
-                self.vmem.current_lim = val.clone();
+                self.mem_lim = val.clone();
             }
             Message::VcoreSetpointSubmit => {
-                self.vcore.voltage = App::text_submit(&self.vcore.voltage_set);
             }
             Message::VmemSetpointSubmit => {
-                self.vmem.voltage = App::text_submit(&self.vcore.voltage_set);
             }
             Message::VcoreCurrentSubmit => {
-                self.vcore.current = App::text_submit(&self.vcore.current_lim);
             }
             Message::VmemCurrentSubmit => {
-                self.vmem.current = App::text_submit(&self.vcore.current_lim);
             }
         }
         Task::none()
@@ -329,7 +327,7 @@ impl Chart<Message> for DataChart {
             .y_label_area_size(28)
             .margin(20)
             .margin_right(48)
-            .build_cartesian_2d(oldest_time..newest_time, -10.0_f32..10.0_f32)
+            .build_cartesian_2d(oldest_time..newest_time, -0.1_f32..3.0_f32)
             .expect("failed to build chart");
 
         // Build Legend and Text
@@ -364,8 +362,10 @@ impl Chart<Message> for DataChart {
 
 struct App {
     device: Device,
-    vcore: Channel,
-    vmem: Channel,
+    core_set: String,
+    core_lim: String,
+    mem_set: String,
+    mem_lim: String,
     data_collect_time: i32,
     data_collect_file: Option<File>,
     chart: DataChart,
@@ -378,8 +378,10 @@ impl Default for App {
     fn default() -> Self {
         Self {
             device: Device::default(),
-            vcore: Channel::default(),
-            vmem: Channel::default(),
+            core_set: String::default(),
+            core_lim: String::default(),
+            mem_set: String::default(),
+            mem_lim: String::default(),
             data_collect_time: -1,
             data_collect_file: None,
             chart: DataChart::default(),
@@ -403,8 +405,6 @@ struct Channel {
     current: f32,
     current_limit: f32,
     temperature: f32,
-    voltage_set: String, // Not on uC
-    current_lim: String, // Not on uC
 }
 
 #[derive(Debug, Clone)]

@@ -14,6 +14,7 @@ pkgs.mkShell rec {
     xorg.libXrandr
     wayland
     libxkbcommon
+    systemd
   ];
 
   LD_LIBRARY_PATH =
