@@ -8,6 +8,7 @@ pkgs.mkShell rec {
     freetype.dev
     libGL
     pkg-config
+    rustup
     xorg.libX11
     xorg.libXcursor
     xorg.libXi
