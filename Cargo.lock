@@ -1310,6 +1310,7 @@ dependencies = [
  "iced",
  "plotters",
  "plotters-iced",
+ "pmbus-types-rs",
  "rand 0.9.0",
  "rfd",
  "serialport",
@@ -2807,6 +2808,11 @@ dependencies = [
  "plotters",
  "plotters-backend",
 ]
+
+[[package]]
+name = "pmbus-types-rs"
+version = "0.1.0"
+source = "git+https://github.com/starboundstitch/pmbus-types-rs#9fd81fbe2f65a9b0e988f2339ae388782ff19ad2"
 
 [[package]]
 name = "png"

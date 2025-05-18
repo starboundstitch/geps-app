@@ -8,6 +8,8 @@ use plotters_iced::{Chart, ChartBuilder, ChartWidget, DrawingBackend};
 use std::collections::VecDeque;
 use std::fs::File;
 
+use pmbus_types_rs::{slinear11, ulinear16};
+
 use iced::time::{self, Duration, Instant};
 
 use chrono::{DateTime, Utc};
@@ -257,25 +259,62 @@ impl App {
                 }
             }
             Message::VcoreSetpointSubmit => {
+                if self.serial_port.is_some() && !self.core_set.is_empty() {
+                    let mut serial_buf: Vec<u8> = vec![0; 0];
+                    serial_buf.push(0x00);
+                    serial_buf.push(0x21);
+                    let data = ulinear16::from(self.core_set.parse::<f32>().unwrap()).to_be_bytes();
+                    serial_buf.push(data[1]);
+                    serial_buf.push(data[0]);
+                    self.send_serial(serial_buf);
+                }
             }
             Message::VmemSetpointSubmit => {
+                if !self.mem_set.is_empty() {
+                    let mut serial_buf: Vec<u8> = vec![0; 0];
+                    serial_buf.push(0x01);
+                    serial_buf.push(0x21);
+                    let data = ulinear16::from(self.mem_set.parse::<f32>().unwrap()).to_be_bytes();
+                    serial_buf.push(data[1]);
+                    serial_buf.push(data[0]);
+                    self.send_serial(serial_buf);
+                }
             }
             Message::VcoreCurrentSubmit => {
+                if !self.core_lim.is_empty() {
+                    let mut serial_buf: Vec<u8> = vec![0; 0];
+                    serial_buf.push(0x00);
+                    serial_buf.push(0x46);
+                    let data = slinear11::from(self.core_lim.parse::<f32>().unwrap()).to_be_bytes();
+                    serial_buf.push(data[1]);
+                    serial_buf.push(data[0]);
+                    self.send_serial(serial_buf);
+                }
             }
             Message::VmemCurrentSubmit => {
+                if !self.mem_lim.is_empty() {
+                    let mut serial_buf: Vec<u8> = vec![0; 0];
+                    serial_buf.push(0x01);
+                    serial_buf.push(0x46);
+                    let data = slinear11::from(self.mem_lim.parse::<f32>().unwrap()).to_be_bytes();
+                    serial_buf.push(data[1]);
+                    serial_buf.push(data[0]);
+                    self.send_serial(serial_buf);
+                }
             }
         }
         Task::none()
     }
 
-    fn text_submit(input: &str) -> f32 {
-        match input.to_owned().parse() {
-            Ok(val) => {
-                return val;
-            }
-            Err(val) => println!("Incorrect Input: {}", val),
+    fn send_serial(&mut self, mut command: Vec<u8>) {
+        match &mut self.serial_port {
+            Some(val) => match val.write(command.as_mut_slice()) {
+                Ok(_val) => {}
+                Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {}
+                Err(_val) => {}
+            },
+            None => {}
         }
-        0.
     }
 
     fn stop_data(&mut self) {
