@@ -237,16 +237,24 @@ impl App {
                 self.serial_port = Some(port);
             }
             Message::VcoreVoltageUpdate(val) => {
-                self.core_set = val.clone();
+                if val.is_empty() || val.parse::<f32>().is_ok() {
+                    self.core_set = val.clone();
+                }
             }
             Message::VcoreCurrentUpdate(val) => {
-                self.core_lim = val.clone();
+                if val.is_empty() || val.parse::<f32>().is_ok() {
+                    self.core_lim = val.clone();
+                }
             }
             Message::VmemVoltageUpdate(val) => {
-                self.mem_set = val.clone();
+                if val.is_empty() || val.parse::<f32>().is_ok() {
+                    self.mem_set = val.clone();
+                }
             }
             Message::VmemCurrentUpdate(val) => {
-                self.mem_lim = val.clone();
+                if val.is_empty() || val.parse::<f32>().is_ok() {
+                    self.mem_lim = val.clone();
+                }
             }
             Message::VcoreSetpointSubmit => {
             }
