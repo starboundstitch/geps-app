@@ -19,7 +19,7 @@ const DARK_THEME: Theme = Theme::CatppuccinFrappe;
 
 pub fn main() -> iced::Result {
     let _app = App::default();
-    iced::application("Amogus", App::update, App::view)
+    iced::application("GEPS App", App::update, App::view)
         .theme(theme)
         .subscription(App::subscription)
         .antialiasing(true)
@@ -70,10 +70,10 @@ impl App {
                     .padding(10),
                     column![
                         text("VCORE"),
-                        text_input("Amogus...", &self.core_set)
+                        text_input("Voltage Setpoint...", &self.core_set)
                             .on_input(Message::VcoreVoltageUpdate)
                             .on_submit(Message::VcoreSetpointSubmit),
-                        text_input("Amogus...", &self.core_lim)
+                        text_input("Current Limit...", &self.core_lim)
                             .on_input(Message::VcoreCurrentUpdate)
                             .on_submit(Message::VcoreCurrentSubmit),
                     ]
@@ -81,10 +81,10 @@ impl App {
                     .padding(10),
                     column![
                         text("VMEM"),
-                        text_input("Amogus...", &self.mem_set)
+                        text_input("Voltage Setpoint...", &self.mem_set)
                             .on_input(Message::VmemVoltageUpdate)
                             .on_submit(Message::VmemSetpointSubmit),
-                        text_input("Amogus...", &self.mem_lim)
+                        text_input("Current Limit...", &self.mem_lim)
                             .on_input(Message::VmemCurrentUpdate)
                             .on_submit(Message::VmemCurrentSubmit)
                     ]
@@ -370,10 +370,15 @@ impl Chart<Message> for DataChart {
 
         // Build the Graph
         let mut chart = builder
-            .x_label_area_size(28)
-            .y_label_area_size(28)
+            .x_label_area_size(48)
+            .y_label_area_size(48)
             .margin(20)
+            .margin_left(30)
             .margin_right(48)
+            .caption(
+                "Memory Channel Voltage",
+                ("Noto Sans", 20).with_color(&text_color.mix(0.65)),
+            )
             .build_cartesian_2d(oldest_time..newest_time, -0.1_f32..3.0_f32)
             .expect("failed to build chart");
 
@@ -385,6 +390,8 @@ impl Chart<Message> for DataChart {
             .light_line_style(text_color.mix(0.05))
             .axis_style(ShapeStyle::from(text_color.mix(0.45)).stroke_width(2))
             .y_labels(10)
+            .y_desc("mem (V)")
+            .x_desc("Time (s)")
             .y_label_style(font_style.clone())
             .y_label_formatter(&|y| format!("{}", y))
             .x_label_style(font_style.clone())
